@@ -4,49 +4,90 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Mengalihkan…</title>
+
+  <!-- Project Pages: isi dengan "/<nama-repo>". User/Org Pages: biarkan "" -->
   <script>
-    const BASE_PATH = "/shortlink"; // user/org pages: "" ; project pages: "/<repo>"
+    const BASE_PATH = "/shortlink";
   </script>
+
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    .hint { margin-top:8px; font-size:14px; opacity:.8 }
+  </style>
 </head>
 <body class="center">
   <div class="card">
     <h1>Mengalihkan…</h1>
     <p id="info" class="muted">Memuat peta tautan</p>
+    <p id="hint" class="hint"></p>
   </div>
 
   <script>
-    (async function(){
-      const BASE = (BASE_PATH||"");
-      const info = document.getElementById('info');
+  (async function () {
+    const BASE = (BASE_PATH || "");
+    const info = document.getElementById("info");
+    const hint = document.getElementById("hint");
 
-      const base = BASE.replace(/\/+$/,''); 
-      let slug = location.pathname;
-      if (base && slug.startsWith(base)) slug = slug.slice(base.length);
-      slug = decodeURIComponent(slug).replace(/^\/+|\/+$/g,'').toLowerCase();
+    // ---- Normalisasi BASE & PATHNAME ----
+    const base = BASE.replace(/\/+$/,"");      // "/shortlink" => "/shortlink"
+    let   slug = location.pathname;            // mis. "/shortlink/abc" atau "/abc"
+    if (base && slug.startsWith(base)) slug = slug.slice(base.length);
+    slug = decodeURIComponent(slug)
+            .replace(/^\/+|\/+$/g,"")          // hapus leading/trailing '/'
+            .replace(/\/?index\.html$/i,"")    // buang 'index.html' kalau ada
+            .toLowerCase();
 
-      if (!slug){ location.replace((BASE||"") + "/"); return; }
+    // Kalau path kosong, kembali ke beranda
+    if (!slug) { location.replace((BASE || "") + "/"); return; }
 
-      const mapUrl = (BASE||"") + "/links.json?ts=" + Date.now();
-      try{
-        const res = await fetch(mapUrl, {cache:"no-store"});
-        if (!res.ok) throw new Error("links.json tidak ditemukan");
-        const links = await res.json();
+    // ---- Lokasi links.json yang dilayani Pages ----
+    const mapURL = (BASE || "") + "/links.json?ts=" + Date.now();
 
-        const target = links[slug];
-        if (target){
-          const qs = location.search || "";
-          const hs = location.hash || "";
-          const finalUrl = target + qs + hs;
-          info.textContent = "→ " + finalUrl;
-          location.replace(finalUrl);
-        }else{
-          info.innerHTML = `Slug <code>${slug}</code> tidak ada. <a href="${(BASE||"") + "/"}">Kembali</a>`;
-        }
-      }catch(e){
-        info.textContent = "Gagal memuat links.json: " + e.message;
+    async function loadMap(url){
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    }
+
+    async function getLinks() {
+      // coba 2x (jaga-jaga cache lawas/CDN delay)
+      try { return await loadMap(mapURL); }
+      catch(_) {
+        await new Promise(r => setTimeout(r, 350));
+        return await loadMap(mapURL);
       }
-    })();
+    }
+
+    function tryResolve(links, key) {
+      // dukung slug bersarang dan case-insensitive
+      if (links[key] != null) return links[key];
+      // fallback: hapus trailing slash di key (kalau ada)
+      const withoutSlash = key.replace(/\/+$/,"");
+      if (links[withoutSlash] != null) return links[withoutSlash];
+      return null;
+    }
+
+    try {
+      const links = await getLinks();
+      const target = tryResolve(links, slug);
+
+      if (target) {
+        const qs = location.search || "";
+        const hs = location.hash || "";
+        const finalUrl = target + qs + hs;
+        info.textContent = "→ " + finalUrl;
+        location.replace(finalUrl);
+        return;
+      }
+
+      // Tidak ditemukan
+      info.innerHTML = `Slug <code>${slug}</code> tidak ada di <code>links.json</code>.`;
+      hint.innerHTML = `Coba kembali ke <a href="${(BASE||"") + "/"}">beranda</a> atau buat shortlink baru.`;
+    } catch (e) {
+      info.textContent = "Gagal memuat links.json: " + e.message;
+      hint.innerHTML = `Pastikan file dapat diakses di <code>${(BASE||"") + "/links.json"}</code>.`;
+    }
+  })();
   </script>
 </body>
 </html>

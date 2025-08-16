@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shortlink 🔗 (GitHub Pages)</title>
+  <meta name="description" content="Static shortlink with dynamic editor via GitHub API">
+  <script>window.SHORT_BASE_PATH = "";</script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Shortlink 🔗</h1>
+    <p>Kelola shortlink statis di GitHub Pages.</p>
+    <section class="card">
+      <h2>Konfigurasi GitHub</h2>
+      <div class="grid">
+        <label>Owner <input id="ghOwner"/></label>
+        <label>Repo <input id="ghRepo"/></label>
+        <label>Branch <input id="ghBranch" value="main"/></label>
+        <label>Path <input id="ghPath" value="links.json"/></label>
+        <label>Base <input id="ghBase"/></label>
+        <label>Token <input id="ghToken" type="password"/></label>
+      </div>
+      <div class="actions">
+        <button id="btnSaveCfg">Simpan Konfigurasi</button>
+        <button id="btnClearCfg">Hapus Konfigurasi</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Buat / Ubah Shortlink</h2>
+      <div class="grid">
+        <label>Slug <input id="slug"/></label>
+        <label>Target <input id="target"/></label>
+      </div>
+      <div class="actions">
+        <button id="btnPreview">Preview</button>
+        <button id="btnCopy">Copy</button>
+        <button id="btnSave">Simpan</button>
+      </div>
+      <p id="result"></p>
+    </section>
+    <section class="card">
+      <h2>Daftar Link</h2>
+      <ul id="list"></ul>
+    </section>
+  </main>
+  <script type="module">
+    const $ = (s,el=document)=>el.querySelector(s);
+    const cfgKeys=["ghOwner","ghRepo","ghBranch","ghPath","ghBase"];
+    const CFG={get owner(){return sessionStorage.getItem("ghOwner")||""},
+      get repo(){return sessionStorage.getItem("ghRepo")||""},
+      get branch(){return sessionStorage.getItem("ghBranch")||"main"},
+      get path(){return sessionStorage.getItem("ghPath")||"links.json"},
+      get base(){return sessionStorage.getItem("ghBase")||window.SHORT_BASE_PATH||""},
+      get token(){return sessionStorage.getItem("ghToken")||""}};
+    function setCfg(){cfgKeys.forEach(k=>sessionStorage.setItem(k,$("#"+k).value.trim()));sessionStorage.setItem("ghToken",$("#ghToken").value.trim());alert("Config saved");renderList();}
+    function fill(){ $("#ghOwner").value=CFG.owner;$("#ghRepo").value=CFG.repo;$("#ghBranch").value=CFG.branch;$("#ghPath").value=CFG.path;$("#ghBase").value=CFG.base;$("#ghToken").value=CFG.token;}
+    function clearCfg(){[...cfgKeys,"ghToken"].forEach(k=>sessionStorage.removeItem(k));fill();alert("Config cleared");renderList();}
+    $("#btnSaveCfg").onclick=setCfg;$("#btnClearCfg").onclick=clearCfg;fill();
+    function buildShort(slug){const base=(CFG.base||"").replace(/\/+$/,'');const s=String(slug||'').trim().toLowerCase().replace(/^\/+|\/+$/g,'');return location.origin+(base||"")+"/"+s;}
+    $("#btnPreview").onclick=()=>{$("#result").textContent=buildShort($("#slug").value)};
+    $("#btnCopy").onclick=async()=>{const url=buildShort($("#slug").value);try{await navigator.clipboard.writeText(url);$("#result").textContent="copied:"+url;}catch{alert("Clipboard fail");}};
+    function ghApi(path,init={}){if(!CFG.token)throw new Error("No token");const headers=Object.assign({"Accept":"application/vnd.github+json","Authorization":"Bearer "+CFG.token},init.headers||{});return fetch("https://api.github.com"+path,{...init,headers});}
+    async function getFile(){const res=await ghApi(`/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.path}?ref=${CFG.branch}`);if(res.status===404)return {json:{},sha:null};const data=await res.json();const content=atob(data.content.replace(/\n/g,""));return {json:JSON.parse(content||"{}"),sha:data.sha};}
+    async function putFile(jsonObj,sha){const content=btoa(unescape(encodeURIComponent(JSON.stringify(jsonObj,null,2))));const body={message:"update via ui",content,branch:CFG.branch};if(sha)body.sha=sha;const res=await ghApi(`/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.path}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!res.ok)throw new Error("PUT fail");return res.json();}
+    async function renderList(){const ul=$("#list");ul.innerHTML="loading...";try{const {json}=await getFile();const keys=Object.keys(json).sort();ul.innerHTML="";keys.forEach(k=>{const li=document.createElement("li");const short=buildShort(k);li.innerHTML=`<code>${k}</code>→<a href="${json[k]}" target="_blank">${json[k]}</a>|<a href="${short}" target="_blank">short</a>`;ul.appendChild(li);});}catch(e){ul.innerHTML="fail:"+e.message;}}
+    renderList();
+    $("#btnSave").onclick=async()=>{try{const slug=$("#slug").value.trim().toLowerCase();const target=$("#target").value.trim();if(!slug||!target)throw new Error("invalid");const {json,sha}=await getFile();json[slug]=target;await putFile(json,sha);$("#result").textContent="saved:"+buildShort(slug);renderList();}catch(e){$("#result").textContent="err:"+e.message;}};
+  </script>
+</body>
+</html>

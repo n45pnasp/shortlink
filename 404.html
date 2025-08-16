@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mengalihkan…</title>
+<script>window.SHORT_BASE_PATH="";</script>
+<link rel="stylesheet" href="style.css"/></head>
+<body class="center"><div class="card"><h1>Mengalihkan…</h1><p id="info">Loading…</p></div>
+<script>(async function(){const BASE=(window.SHORT_BASE_PATH||"");const info=document.getElementById('info');let slug=location.pathname;if(BASE&&slug.startsWith(BASE))slug=slug.slice(BASE.length);slug=decodeURIComponent(slug).replace(/^\/+/,'').toLowerCase();if(!slug){location.replace((BASE||"")+"/");return;}const mapUrl=(BASE||"")+"/links.json?ts="+Date.now();try{const res=await fetch(mapUrl,{cache:"no-store"});if(!res.ok)throw new Error("links.json missing");const links=await res.json();const t=links[slug];if(t){location.replace(t+(location.search||"")+(location.hash||""));}else{info.textContent="slug "+slug+" not found";}}catch(e){info.textContent="err:"+e.message;}})();</script>
+</body></html>

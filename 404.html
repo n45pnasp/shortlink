@@ -4,43 +4,185 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Mengalihkan…</title>
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b1220"/>
 
-  <!-- Project Pages: isi dengan "/<nama-repo>". User/Org Pages: biarkan "" -->
+  <!-- Project Pages: isi "/<repo>"; User/Org Pages: "" -->
   <script>
     const BASE_PATH = "/shortlink";
   </script>
 
-  <link rel="stylesheet" href="style.css"/>
   <style>
-    .hint { margin-top:8px; font-size:14px; opacity:.8 }
+    :root{
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:rgba(255,255,255,.08);
+      --accent:#60a5fa;
+      --accent-2:#3b82f6;
+      --success:#22c55e;
+      --error:#ef4444;
+      --radius:18px;
+      --shadow:0 18px 50px rgba(0,0,0,.45);
+      --glow:0 0 0 0 rgba(99,102,241,.0);
+    }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 20% -10%, #0f1a33 0%, transparent 60%),
+                  radial-gradient(1000px 700px at 110% 10%, #0b1530 0%, transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      display:grid; place-items:center; padding:24px;
+    }
+    .card{
+      width:min(720px, 92vw);
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 20px 18px;
+      backdrop-filter: blur(8px);
+      position: relative;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px; padding:6px 6px 14px 6px; border-bottom:1px dashed var(--border);
+      margin-bottom:14px;
+    }
+    .brand img{ width:150px; height:auto; display:block; filter: drop-shadow(0 2px 8px rgba(0,0,0,.35)); }
+    .brand .tag{
+      margin-left:auto; font-size:12px; color:var(--muted); background:#0a1224; border:1px solid var(--border);
+      padding:4px 8px; border-radius:999px;
+    }
+    h1{
+      font-size:22px; margin:0 0 8px; letter-spacing:.2px;
+    }
+    p{ margin:6px 0; color:var(--muted); }
+    code{ background:#0a1224; padding:2px 6px; border-radius:8px; border:1px solid var(--border); color:#cbd5e1 }
+
+    .row{
+      display:flex; align-items:center; gap:12px; margin-top:8px;
+      padding:12px; background:#0c172f; border:1px solid var(--border); border-radius:14px;
+    }
+    .dot{
+      width:12px; height:12px; border-radius:50%; background:var(--accent);
+      box-shadow: 0 0 0 0 rgba(96,165,250,.6);
+      animation: pulse 1.4s infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow: 0 0 0 0 rgba(96,165,250,.45) }
+      70%{ box-shadow: 0 0 0 14px rgba(96,165,250,0) }
+      100%{ box-shadow: 0 0 0 0 rgba(96,165,250,0) }
+    }
+
+    .bar{
+      position:relative; height:8px; background:#0a1224; border:1px solid var(--border);
+      border-radius:999px; overflow:hidden; flex:1;
+    }
+    .bar > i{
+      position:absolute; inset:0; transform:translateX(-100%); animation: loading 1.7s ease-in-out infinite;
+      background: linear-gradient(90deg, transparent, var(--accent-2), transparent);
+    }
+    @keyframes loading{
+      0%{ transform: translateX(-100%) }
+      50%{ transform: translateX(0%) }
+      100%{ transform: translateX(100%) }
+    }
+
+    .final{
+      display:flex; align-items:center; gap:10px; margin-top:10px;
+      font-size:14px; color:#c7f9d4;
+    }
+    .final .tick{
+      width:18px; height:18px; border-radius:50%; background:var(--success);
+      display:inline-grid; place-items:center; color:#052e12; font-weight:700; font-size:12px;
+      box-shadow: 0 0 0 6px rgba(34,197,94,.12);
+    }
+
+    .actions{
+      display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;
+    }
+    .btn{
+      appearance:none; border:none; cursor:pointer; outline:none;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color:white; padding:10px 14px; border-radius:12px; font-weight:600;
+      box-shadow: 0 10px 24px rgba(59,130,246,.25);
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn:active{ transform: translateY(1px); box-shadow: 0 6px 16px rgba(59,130,246,.25); }
+    .btn.secondary{
+      background:#0a1224; color:var(--text); border:1px solid var(--border); box-shadow:none; font-weight:500;
+    }
+    .muted-sm{ font-size:12px; color:var(--muted); margin-top:8px }
+
+    .target-url{
+      margin-top:8px; font-size:14px; word-break:break-all;
+      background:#0a1224; border:1px solid var(--border); border-radius:12px; padding:10px 12px;
+    }
   </style>
 </head>
-<body class="center">
-  <div class="card">
+<body>
+  <div class="card" role="status" aria-live="polite">
+    <div class="brand">
+      <img alt="InJourney Airports" src="https://injourneyairports.id/assets/injourney-logo-white-Dl4T6LNj.png" />
+      <span class="tag">Shortlink Redirector</span>
+    </div>
+
     <h1>Mengalihkan…</h1>
-    <p id="info" class="muted">Memuat peta tautan</p>
-    <p id="hint" class="hint"></p>
+    <p id="desc">Memuat peta tautan (<code>links.json</code>) dan menyiapkan tujuan Anda.</p>
+
+    <div class="row">
+      <span class="dot" aria-hidden="true"></span>
+      <div class="bar" aria-hidden="true"><i></i></div>
+      <span class="muted-sm" id="slugInfo"></span>
+    </div>
+
+    <div id="final" class="final" style="display:none;">
+      <span class="tick">✓</span>
+      <span>Mengalihkan ke tujuan…</span>
+    </div>
+
+    <div id="targetBox" class="target-url" style="display:none;"></div>
+
+    <div class="actions">
+      <a class="btn secondary" id="homeBtn" href="#">Beranda</a>
+      <button class="btn" id="copyBtn" style="display:none;">Salin URL Tujuan</button>
+    </div>
+
+    <p class="muted-sm" id="hint"></p>
   </div>
 
   <script>
   (async function () {
     const BASE = (BASE_PATH || "");
-    const info = document.getElementById("info");
-    const hint = document.getElementById("hint");
+    const desc  = document.getElementById("desc");
+    const hint  = document.getElementById("hint");
+    const slugInfo = document.getElementById("slugInfo");
+    const final = document.getElementById("final");
+    const homeBtn = document.getElementById("homeBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const targetBox = document.getElementById("targetBox");
 
-    // ---- Normalisasi BASE & PATHNAME ----
-    const base = BASE.replace(/\/+$/,"");      // "/shortlink" => "/shortlink"
-    let   slug = location.pathname;            // mis. "/shortlink/abc" atau "/abc"
+    const base = BASE.replace(/\/+$/,"");
+    let slug = location.pathname;
     if (base && slug.startsWith(base)) slug = slug.slice(base.length);
     slug = decodeURIComponent(slug)
-            .replace(/^\/+|\/+$/g,"")          // hapus leading/trailing '/'
-            .replace(/\/?index\.html$/i,"")    // buang 'index.html' kalau ada
+            .replace(/^\/+|\/+$/g,"")
+            .replace(/\/?index\.html$/i,"")
             .toLowerCase();
 
-    // Kalau path kosong, kembali ke beranda
-    if (!slug) { location.replace((BASE || "") + "/"); return; }
+    homeBtn.href = (BASE || "") + "/";
+    slugInfo.textContent = slug ? "slug: " + slug : "";
 
-    // ---- Lokasi links.json yang dilayani Pages ----
+    if (!slug) {
+      // jika dibuka tanpa slug, kembali ke beranda
+      location.replace((BASE || "") + "/");
+      return;
+    }
+
     const mapURL = (BASE || "") + "/links.json?ts=" + Date.now();
 
     async function loadMap(url){
@@ -48,44 +190,49 @@
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
       return r.json();
     }
-
     async function getLinks() {
-      // coba 2x (jaga-jaga cache lawas/CDN delay)
       try { return await loadMap(mapURL); }
       catch(_) {
-        await new Promise(r => setTimeout(r, 350));
+        await new Promise(r => setTimeout(r, 300));
         return await loadMap(mapURL);
       }
     }
-
-    function tryResolve(links, key) {
-      // dukung slug bersarang dan case-insensitive
+    function resolve(links, key){
       if (links[key] != null) return links[key];
-      // fallback: hapus trailing slash di key (kalau ada)
       const withoutSlash = key.replace(/\/+$/,"");
       if (links[withoutSlash] != null) return links[withoutSlash];
       return null;
     }
 
-    try {
+    try{
       const links = await getLinks();
-      const target = tryResolve(links, slug);
+      const target = resolve(links, slug);
 
-      if (target) {
+      if (target){
         const qs = location.search || "";
-        const hs = location.hash || "";
+        const hs = location.hash   || "";
         const finalUrl = target + qs + hs;
-        info.textContent = "→ " + finalUrl;
-        location.replace(finalUrl);
+
+        final.style.display = "";
+        targetBox.style.display = "";
+        targetBox.textContent = finalUrl;
+        copyBtn.style.display = "";
+        copyBtn.onclick = async ()=> {
+          try{ await navigator.clipboard.writeText(finalUrl); hint.textContent = "URL tujuan disalin."; }
+          catch{ hint.textContent = "Clipboard tidak tersedia."; }
+        };
+
+        // beri sedikit waktu untuk screen reader/visual feedback, lalu alihkan
+        setTimeout(()=>{ location.replace(finalUrl); }, 120);
         return;
       }
 
       // Tidak ditemukan
-      info.innerHTML = `Slug <code>${slug}</code> tidak ada di <code>links.json</code>.`;
-      hint.innerHTML = `Coba kembali ke <a href="${(BASE||"") + "/"}">beranda</a> atau buat shortlink baru.`;
-    } catch (e) {
-      info.textContent = "Gagal memuat links.json: " + e.message;
-      hint.innerHTML = `Pastikan file dapat diakses di <code>${(BASE||"") + "/links.json"}</code>.`;
+      desc.innerHTML = `Slug <code>${slug}</code> tidak ada di <code>links.json</code>.`;
+      hint.innerHTML = `Kembali ke <a href="${(BASE||"") + "/"}">beranda</a> atau buat shortlink baru.`;
+    }catch(e){
+      desc.textContent = "Gagal memuat links.json: " + e.message;
+      hint.innerHTML = `Pastikan file tersedia di <code>${(BASE||"") + "/links.json"}</code>.`;
     }
   })();
   </script>

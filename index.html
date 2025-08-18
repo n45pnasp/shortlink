@@ -5,14 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shortlink 🔗</title>
   <meta name="description" content="Static shortlink on GitHub Pages (super simple)">
+
   <script>
-    // ====== KONFIGURASI TETAP (ubah di sini kalau perlu) ======
-    const OWNER = "n45pnasp";
-    const REPO  = "shortlink";
-    const BRANCH= "main";
+    /* ===== KONFIGURASI =====
+       Project Pages: BASE_PATH = "/<repo>";
+       User/Org Pages: BASE_PATH = "";
+    */
+    const OWNER     = "n45pnasp";
+    const REPO      = "shortlink";
+    const BRANCH    = "main";
     const JSON_PATH = "links.json";
-    const BASE_PATH = "/shortlink"; // user/org pages: "" ; project pages: "/<repo>"
+    const BASE_PATH = "/shortlink";
   </script>
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -46,21 +51,40 @@
   <script type="module">
     const $ = (s,el=document)=>el.querySelector(s);
 
-    // ====== Token GitHub: diminta sekali via prompt, disimpan di sessionStorage ======
+    /* ========================
+       TOKEN GITHUB (persisten)
+       - bisa set via URL: ?token=... / #token=... / ?gh=...
+       - disimpan ke localStorage (sekali untuk semua sesi)
+       - fallback prompt hanya saat pertama kali butuh write
+    =========================*/
     const tokenKey = "gh_token_shortlink_v2";
-    function requireToken() {
-      let t = sessionStorage.getItem(tokenKey);
+    function requireToken(){
+      let t = localStorage.getItem(tokenKey);
+
+      if (!t) {
+        const q = new URLSearchParams(location.search);
+        const h = new URLSearchParams(location.hash.replace(/^#/, ""));
+        const fromUrl = q.get("token") || h.get("token") || q.get("gh") || h.get("gh");
+        if (fromUrl) {
+          t = fromUrl.trim();
+          localStorage.setItem(tokenKey, t);
+          history.replaceState(null, "", location.pathname);
+        }
+      }
+
       if (!t) {
         t = prompt("Tempel GitHub Token (contents: read & write untuk repo ini):");
         if (!t) throw new Error("Token dibutuhkan untuk menyimpan ke GitHub.");
-        sessionStorage.setItem(tokenKey, t.trim());
+        localStorage.setItem(tokenKey, t.trim());
       }
       return t;
     }
+    // opsional: panggil dari console bila ingin menghapus token
+    window.clearToken = function(){ localStorage.removeItem(tokenKey); alert("Token dihapus."); };
 
-    // ====== Util ======
+    /* =========== Util =========== */
     function buildShort(slug){
-      const base = (BASE_PATH||"").replace(/\/+$/,''); 
+      const base = (BASE_PATH||"").replace(/\/+$/,'');
       const s = String(slug||'').trim().toLowerCase().replace(/^\/+|\/+$/g,'');
       return location.origin + (base||"") + "/" + s;
     }
@@ -69,7 +93,7 @@
       return Array.from({length:n},()=>chars[Math.floor(Math.random()*chars.length)]).join("");
     }
 
-    // ====== GitHub API ======
+    /* ======= GitHub API (untuk WRITE saja) ======= */
     function ghApi(path, init={}){
       const headers = Object.assign({
         "Accept":"application/vnd.github+json",
@@ -99,10 +123,15 @@
       return res.json();
     }
 
+    /* ======= Tampilkan daftar link (NO TOKEN) ======= */
     async function refreshList(){
       const ul = $("#list"); ul.innerHTML = "<li class='muted'>Memuat…</li>";
       try{
-        const {json} = await getFile();
+        const listURL = (BASE_PATH || "") + "/links.json?ts=" + Date.now();
+        const r = await fetch(listURL, { cache: "no-store" });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const json = await r.json();
+
         const keys = Object.keys(json).sort();
         ul.innerHTML = keys.length ? "" : "<li class='muted'>Belum ada link.</li>";
         for(const k of keys){
@@ -116,9 +145,11 @@
       }
     }
 
+    /* ======= Generate shortlink ======= */
     $("#btnGen").onclick = async ()=>{
       const status = $("#status"); const out=$("#out"); const btnCopy=$("#btnCopy");
       status.textContent = ""; out.textContent = ""; btnCopy.disabled = true;
+
       try{
         const url = ($("#target").value||"").trim();
         if(!/^https?:\/\//i.test(url)) throw new Error("Target harus URL (http/https).");
@@ -127,9 +158,10 @@
 
         status.textContent = "Menyimpan ke GitHub…";
         const {json, sha} = await getFile();
-        if (json[slug]){ // hindari tabrakan
-          slug = randomSlug();
-        }
+
+        // hindari tabrakan slug
+        if (json[slug]) slug = randomSlug();
+
         json[slug] = url;
         await putFile(json, sha);
 

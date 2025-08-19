@@ -100,15 +100,19 @@
     <div class="card">
       <h3 id="loginTitle">Masuk</h3>
       <p id="loginDesc">Gunakan akun email/password yang terdaftar di Firebase.</p>
-      <label>Email</label>
-      <input id="email" type="email" autocomplete="username" placeholder="nama@contoh.com" />
-      <label>Password</label>
-      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
-      <div class="rowbtn">
-        <button id="doLogin" class="btn">Login</button>
-        <button id="cancelLogin" class="btn secondary">Batal</button>
-      </div>
-      <p id="loginInfo" class="muted"></p>
+
+      <!-- FORM login agar Enter otomatis submit -->
+      <form id="loginForm">
+        <label>Email</label>
+        <input id="email" type="email" autocomplete="username" placeholder="nama@contoh.com" />
+        <label>Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+        <div class="rowbtn">
+          <button id="doLogin" type="submit" class="btn">Login</button>
+          <button id="cancelLogin" type="button" class="btn secondary">Batal</button>
+        </div>
+        <p id="loginInfo" class="muted"></p>
+      </form>
     </div>
   </div>
 
@@ -117,7 +121,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-    // ===== Firebase Config (dari kamu) =====
+    // ===== Firebase Config =====
     const firebaseConfig = {
       apiKey: "AIzaSyAjqMqmKUDPWHkv19Dig7PnUpHMzNf9J1A",
       authDomain: "onlinecsbwx.firebaseapp.com",
@@ -135,6 +139,7 @@
     const appRoot     = $("#appRoot");
     const overlay     = $("#overlay");
     const modal       = $("#loginModal");
+    const loginForm   = $("#loginForm");
     const btnLogin    = $("#btnLogin");
     const btnLogout   = $("#btnLogout");
     const doLogin     = $("#doLogin");
@@ -159,18 +164,26 @@
     btnLogin.onclick = openModal;
     cancelLogin.onclick = closeModal;
 
-    doLogin.onclick = async ()=>{
+    async function handleLogin(){
       loginInfo.textContent = "Memproses…";
+      doLogin.disabled = true;
       try{
         const email = $("#email").value.trim();
         const pass  = $("#password").value;
         await signInWithEmailAndPassword(auth, email, pass);
         loginInfo.textContent = "Berhasil masuk.";
         setTimeout(closeModal, 250);
+        setTimeout(()=>$("#target")?.focus(), 300);
       }catch(e){
         loginInfo.textContent = "Gagal: " + (e?.message || e);
+      }finally{
+        doLogin.disabled = false;
       }
-    };
+    }
+    // Klik tombol Login
+    doLogin.onclick = (e)=>{ e.preventDefault(); handleLogin(); };
+    // ENTER di form login
+    loginForm.addEventListener("submit",(e)=>{ e.preventDefault(); handleLogin(); });
 
     btnLogout.onclick = async ()=>{ await signOut(auth); };
 
@@ -181,7 +194,6 @@
         btnLogout.style.display = "";
         gen.disabled = false;
         authHint.textContent = `Masuk sebagai: ${user.email||"akun"}`;
-        // kalau modal kebetulan terbuka, beri info dan tutup
         loginDesc.textContent = "Anda sudah login.";
         loginInfo.textContent = `Masuk sebagai: ${user.email||"akun"}`;
         closeModal();
@@ -191,18 +203,19 @@
         gen.disabled = true;
         copy.disabled = true;
         authHint.textContent = "Belum login.";
-        // tampilkan modal login default
         openModal();
       }
     }
 
-    // Saat halaman pertama kali dibuka, tampilkan modal dulu (default),
-    // nanti onAuthStateChanged akan menutup bila user sudah login.
+    // Tampilkan modal di awal; tutup otomatis jika sudah login
     openModal();
     onAuthStateChanged(auth, setAuthUI);
 
     /* ========================
        TOKEN GITHUB (persisten)
+       - set via ?token=... atau #token=...
+       - disimpan localStorage
+       - fallback prompt saat butuh write
     =========================*/
     const tokenKey = "gh_token_shortlink_v2";
     function requireToken(){

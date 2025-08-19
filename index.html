@@ -7,7 +7,7 @@
   <meta name="description" content="Static shortlink on GitHub Pages (super simple)">
 
   <script>
-    /* ===== KONFIGURASI =====
+    /* ===== KONFIG =====
        Project Pages: BASE_PATH = "/<repo>";
        User/Org Pages: BASE_PATH = "";
     */
@@ -21,56 +21,40 @@
   <link rel="stylesheet" href="style.css" />
   <style>
     /* ====== Modal login + blur ====== */
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px; margin-bottom:12px;
-    }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px }
     .pill{ padding:8px 12px; border:1px solid var(--border,rgba(255,255,255,.12));
-      border-radius:12px; background:transparent; color:var(--text,#e5e7eb);
-      cursor:pointer; }
+      border-radius:12px; background:transparent; color:var(--text,#e5e7eb); cursor:pointer }
     .pill:hover{ background:rgba(255,255,255,.06) }
+    #authHint{ margin:4px 0 14px; color:var(--muted,#9ca3af); font-size:13px }
 
-    .overlay{
-      position:fixed; inset:0; background:rgba(0,0,0,.35);
+    .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35);
       backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-      display:none; z-index:60;
-    }
-    .overlay.show{ display:block; }
-
-    .modal{
-      position:fixed; inset:0; display:grid; place-items:center; z-index:70; display:none;
-    }
-    .modal.show{ display:grid; }
+      display:none; z-index:60 }
+    .overlay.show{ display:block }
+    .modal{ position:fixed; inset:0; display:none; place-items:center; z-index:70 }
+    .modal.show{ display:grid }
     .modal .card{
-      width:min(420px,92vw);
-      background:var(--panel,#111827);
-      border:1px solid var(--border,rgba(255,255,255,.1));
-      border-radius:16px; padding:20px; box-shadow:0 20px 60px rgba(0,0,0,.45)
+      width:min(420px,92vw); background:var(--panel,#111827);
+      border:1px solid var(--border,rgba(255,255,255,.1)); border-radius:16px;
+      padding:20px; box-shadow:0 20px 60px rgba(0,0,0,.45)
     }
-    .modal h3{ margin:0 0 8px 0 }
-    .modal p{ margin:0 0 12px 0; color:var(--muted,#9ca3af) }
+    .modal h3{ margin:0 0 8px }
+    .modal p{ margin:0 0 12px; color:var(--muted,#9ca3af) }
     .modal label{ display:block; font-size:14px; margin:10px 0 6px }
     .modal input{
-      width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border,rgba(255,255,255,.12));
+      width:100%; padding:10px 12px; border-radius:10px;
+      border:1px solid var(--border,rgba(255,255,255,.12));
       background:#0b1324; color:#e5e7eb;
     }
     .rowbtn{ display:flex; gap:10px; margin-top:14px }
-    .btn{
-      appearance:none; border:none; padding:10px 14px; border-radius:12px; cursor:pointer;
-      color:white; background:linear-gradient(180deg,#60a5fa,#3b82f6);
-    }
+    .btn{ appearance:none; border:none; padding:10px 14px; border-radius:12px; cursor:pointer;
+      color:white; background:linear-gradient(180deg,#60a5fa,#3b82f6) }
     .btn.secondary{ background:#0a1224; color:var(--text,#e5e7eb); border:1px solid var(--border,rgba(255,255,255,.12)) }
     .muted{ color:var(--muted,#9ca3af) }
     .danger{ color:#f87171 }
-
-    /* delete button */
-    .delBtn{
-      margin-left:6px; background:none; border:none; color:#f87171; cursor:pointer; font-size:14px;
-    }
+    .delBtn{ margin-left:6px; background:none; border:none; color:#f87171; cursor:pointer; font-size:14px }
     .delBtn:hover{ color:#dc2626 }
-
-    /* blur konten saat modal terbuka */
-    .blurred{ filter: blur(3px); transform: translateZ(0); }
+    .blurred{ filter: blur(3px); transform: translateZ(0) }
   </style>
 </head>
 <body>
@@ -82,6 +66,7 @@
         <button id="btnLogout" class="pill" style="display:none">Logout</button>
       </div>
     </div>
+    <div id="authHint">Belum login.</div>
 
     <p>Masukkan URL, klik <b>Generate</b>, dapatkan shortlink. Simple.</p>
 
@@ -114,7 +99,7 @@
   <div id="loginModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="card">
       <h3 id="loginTitle">Masuk</h3>
-      <p>Gunakan akun email/password yang terdaftar di Firebase.</p>
+      <p id="loginDesc">Gunakan akun email/password yang terdaftar di Firebase.</p>
       <label>Email</label>
       <input id="email" type="email" autocomplete="username" placeholder="nama@contoh.com" />
       <label>Password</label>
@@ -147,14 +132,16 @@
     const auth = getAuth(app);
 
     const $ = (s,el=document)=>el.querySelector(s);
-    const appRoot   = $("#appRoot");
-    const overlay   = $("#overlay");
-    const modal     = $("#loginModal");
-    const btnLogin  = $("#btnLogin");
-    const btnLogout = $("#btnLogout");
-    const doLogin   = $("#doLogin");
+    const appRoot     = $("#appRoot");
+    const overlay     = $("#overlay");
+    const modal       = $("#loginModal");
+    const btnLogin    = $("#btnLogin");
+    const btnLogout   = $("#btnLogout");
+    const doLogin     = $("#doLogin");
     const cancelLogin = $("#cancelLogin");
-    const loginInfo = $("#loginInfo");
+    const loginInfo   = $("#loginInfo");
+    const loginDesc   = $("#loginDesc");
+    const authHint    = $("#authHint");
 
     function openModal(){
       overlay.classList.add("show");
@@ -179,15 +166,13 @@
         const pass  = $("#password").value;
         await signInWithEmailAndPassword(auth, email, pass);
         loginInfo.textContent = "Berhasil masuk.";
-        setTimeout(closeModal, 300);
+        setTimeout(closeModal, 250);
       }catch(e){
         loginInfo.textContent = "Gagal: " + (e?.message || e);
       }
     };
 
-    btnLogout.onclick = async ()=>{
-      await signOut(auth);
-    };
+    btnLogout.onclick = async ()=>{ await signOut(auth); };
 
     function setAuthUI(user){
       const gen = $("#btnGen"), copy = $("#btnCopy");
@@ -195,23 +180,29 @@
         btnLogin.style.display = "none";
         btnLogout.style.display = "";
         gen.disabled = false;
+        authHint.textContent = `Masuk sebagai: ${user.email||"akun"}`;
+        // kalau modal kebetulan terbuka, beri info dan tutup
+        loginDesc.textContent = "Anda sudah login.";
+        loginInfo.textContent = `Masuk sebagai: ${user.email||"akun"}`;
+        closeModal();
       }else{
         btnLogin.style.display = "";
         btnLogout.style.display = "none";
         gen.disabled = true;
         copy.disabled = true;
+        authHint.textContent = "Belum login.";
+        // tampilkan modal login default
+        openModal();
       }
     }
 
-    onAuthStateChanged(auth, (user)=>{
-      setAuthUI(user);
-    });
+    // Saat halaman pertama kali dibuka, tampilkan modal dulu (default),
+    // nanti onAuthStateChanged akan menutup bila user sudah login.
+    openModal();
+    onAuthStateChanged(auth, setAuthUI);
 
     /* ========================
        TOKEN GITHUB (persisten)
-       - bisa set via URL: ?token=... / #token=... / ?gh=...
-       - disimpan ke localStorage
-       - fallback prompt saat pertama kali butuh write
     =========================*/
     const tokenKey = "gh_token_shortlink_v2";
     function requireToken(){
@@ -309,8 +300,7 @@
 
     /* ======= Hapus slug ======= */
     async function deleteSlug(slug){
-      const user = auth.currentUser;
-      if (!user){ openModal(); return; }
+      if (!auth.currentUser){ openModal(); return; }
       if(!confirm(`Yakin hapus shortlink "${slug}"?`)) return;
       const status = $("#status"); status.textContent = "Menghapus…";
       try{
@@ -328,8 +318,7 @@
 
     /* ======= Generate ======= */
     $("#btnGen").onclick = async ()=>{
-      const user = auth.currentUser;
-      if (!user){ openModal(); return; }
+      if (!auth.currentUser){ openModal(); return; }
 
       const status = $("#status"); const out=$("#out"); const btnCopy=$("#btnCopy");
       status.textContent = ""; out.textContent = ""; btnCopy.disabled = true;
@@ -367,7 +356,7 @@
     $("#btnReset").onclick = ()=>{
       localStorage.removeItem("gh_token_shortlink_v2");
       sessionStorage.removeItem("gh_token_shortlink_v2");
-      alert("Token GitHub dihapus dari browser. Set ulang via ?token=... atau klik Generate.");
+      alert("Token GitHub dihapus. Set ulang via ?token=... atau klik Generate.");
       location.reload();
     };
 
